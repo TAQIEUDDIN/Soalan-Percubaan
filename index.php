@@ -25,7 +25,7 @@
 
         <div class="mb-3">
             <label for="rate" class="form-label fw-bold">CURRENT RATE</label>
-        <input type="number" step="0.01" class="form-control" id="rate" name="rate" required>
+            <input type="number" step="0.01" class="form-control" id="rate" name="rate" required>
             <small class="text-muted">sen/kWh</small>
         </div>
 
@@ -38,35 +38,55 @@
         $current = floatval($_POST["current"]);
         $rate = floatval($_POST["rate"]);
 
-        $power_kw = ($voltage * $current) / 1000;
-        $rate_rm = $rate / 100;
-    ?>
-        <div class="mt-4 p-3 border border-primary rounded bg-light">
-            <p class="fw-bold text-primary">POWER : <?= number_format($power_kw, 5) ?> kW</p>
-            <p class="fw-bold text-primary">RATE : RM <?= number_format($rate_rm, 3) ?></p>
-        </div>
+        function calculateElectricity($voltage, $current, $rate) {
+            $power = $voltage * $current / 1000; 
+            $results = [];
 
-        <table class="table mt-4">
-            <thead>
+            for ($hour = 1; $hour <= 24; $hour++) {
+                $energy = $power * $hour; 
+                $total = $energy * ($rate / 100); 
+                $results[] = [
+                    'hour' => $hour,
+                    'energy' => $energy,
+                    'total' => $total
+                ];
+            }
+
+            return ['power' => $power, 'rate' => $rate / 100, 'results' => $results];
+        }
+
+        $result = calculateElectricity($voltage, $current, $rate);
+    }
+    ?>
+
+<?php if (isset($result)): ?>
+    <div class="mt-4 p-3 border border-primary rounded bg-light">
+        <p class="fw-bold text-primary">POWER : <?= number_format($result['power'], 5) ?> kW</p>
+        <p class="fw-bold text-primary">RATE : RM <?= number_format($result['rate'], 3) ?></p>
+    </div>
+
+    <table class="table mt-4">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Hour</th>
+                <th>Energy (kWh)</th>
+                <th>TOTAL (RM)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php $counter = 1; ?>
+            <?php foreach ($result['results'] as $row): ?>
                 <tr>
-                    <th>#</th>
-                    <th>Hour</th>
-                    <th>Energy (kWh)</th>
-                    <th>TOTAL (RM)</th>
+                    <td class="fw-bold"><?= $counter++ ?></td>
+                    <td><?= $row['hour'] ?></td>
+                    <td><?= number_format($row['energy'], 5) ?></td>
+                    <td><?= number_format($row['total'], 2) ?></td>
                 </tr>
-            </thead>
-            <tbody>
-                <?php for ($i = 1; $i <= 24; $i++) : ?>
-                    <tr>
-                        <td><?= $i ?></td>
-                        <td><?= $i ?></td>
-                        <td><?= number_format($power_kw * $i, 5) ?></td>
-                        <td><?= number_format(($power_kw * $i) * $rate_rm, 2) ?></td>
-                    </tr>
-                <?php endfor; ?>
-            </tbody>
-        </table>
-    <?php } ?>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
 </body>
 </html>
 
